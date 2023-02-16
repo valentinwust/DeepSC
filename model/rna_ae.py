@@ -3,6 +3,7 @@ from torch.nn import Module, Sequential, Linear
 from ..util import printwtime
 from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation
 from ..nn import make_FC_encoder, make_FC_decoder
+from ..nn import NB_loss
 
 class RNA_NBAutoEncoder(Module):
     """ Simple NB autoencoder, basically reimplementation of dca.
