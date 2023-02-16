@@ -51,7 +51,7 @@ def train_model(model, trainloader, testloader, optimizer, epochs, device, clip_
             running_loss += loss.item()*data.shape[0]
         running_loss = running_loss / len(trainloader.dataset)
         
-        evalloss = mean_evaluate_loss(model, testloader, device, False)
+        evalloss = evaluate_mean_loss(model, testloader, device, False)
         
         history["epoch"].append(epoch)
         history["training_loss"].append(running_loss)
