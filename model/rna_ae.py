@@ -95,7 +95,7 @@ class RNA_NBAutoEncoder(Module):
         with torch.no_grad():
             if not training is None:
                 self.train(training)
-            total_loss = None
+            total_loss = 0.
 
             for batch in loader:
                 k = batch[0].to(device)
