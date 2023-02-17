@@ -103,7 +103,7 @@ class RNA_NBAutoEncoder(Module):
         
             return total_loss/len(loader.dataset)
     
-    def train(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True):
+    def train_model(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True):
         """ Train model.
         """
         trainloader, testloader = get_RNA_dataloaders(counts, batch_size=128)
