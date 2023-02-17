@@ -1,9 +1,11 @@
 from torch.nn import Module, Sequential, Linear
+import torch
 
 from ..util import printwtime
 from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation
 from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
+from ..util import get_RNA_dataloaders
 
 class RNA_NBAutoEncoder(Module):
     """ Simple NB autoencoder, basically reimplementation of dca.
@@ -85,7 +87,58 @@ class RNA_NBAutoEncoder(Module):
         """
         mean, theta = self.forward(k)
         loss = self.loss(k, mean, theta)
-        return loss
+        return {"nll": loss}
+    
+    def evaluate_mean_loss(self, loader, device, training=False):
+        """ Evaluate loss of model on whole data loader.
+        """
+        with torch.no_grad():
+            if not training is None:
+                self.train(training)
+            total_loss = None
+
+            for batch in loader:
+                k = batch[0].to(device)
+                total_loss += self.get_loss(k)["nll"].sum().item()
+        
+            return total_loss/len(loader.dataset)
+    
+    def train(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True):
+        """ Train model.
+        """
+        trainloader, testloader = get_RNA_dataloaders(counts, batch_size=128)
+        printwtime(f"Train model {type(self).__name__}")
+        
+        optimizer = torch.optim.RMSprop(self.parameters(), lr=lr)
+        printwtime(f"  Optimizer {type(optimizer).__name__} (lr={optimizer.param_groups[0]['lr']}), {epochs} epochs, device {device}.")
+        
+        history = {"training_loss":[], "test_loss":[], "epoch":[], "lr":[]}
+        
+        for epoch in range(epochs):  # loop over the dataset multiple times
+            running_loss = 0.0
+            self.train()
+            for batch in trainloader:
+                optimizer.zero_grad()
+                
+                data = batch[0].to(device)
+                loss = self.get_loss(data)["nll"].mean()
+                loss.backward()
+                if clip_gradients is not None:
+                    torch.nn.utils.clip_grad_norm_(self.parameters(), clip_gradients)
+                optimizer.step()
+                
+                running_loss += loss.item()*data.shape[0]
+            running_loss = running_loss / len(trainloader.dataset)
+            
+            evalloss = self.evaluate_mean_loss(testloader, device, False)
+            
+            history["epoch"].append(epoch)
+            history["training_loss"].append(running_loss)
+            history["test_loss"].append(evalloss)
+            
+            if verbose: printwtime(f'  [{epoch + 1}/{epochs}] train loss: {running_loss:.3f}, test loss: {evalloss:.3f}')
+            
+        return history
 
 class RNA_NBPCA(RNA_NBAutoEncoder):
     """ Simplified version of RNA_NBAutoEncoder, similar to glm-pca?
