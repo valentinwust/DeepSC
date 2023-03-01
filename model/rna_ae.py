@@ -106,7 +106,7 @@ class RNA_NBAutoEncoder(Module):
 
             for batch in loader:
                 kin = batch[0].to(device)
-                kout = batch[0].to(device)
+                kout = batch[1].to(device)
                 total_loss += self.get_loss(kin, kout)["nll"].sum().item()
         
             return {"nll": total_loss/len(loader.dataset)}
