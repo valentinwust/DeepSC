@@ -1,4 +1,5 @@
 from torch.nn import Module, Sequential, Linear
+import torch
 import numpy as np
 
 from ..util import printwtime
