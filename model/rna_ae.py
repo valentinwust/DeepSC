@@ -7,12 +7,13 @@ from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivati
 from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
 from ..util import get_RNA_dataloaders
+from ..module import EvaluateLatentModule
 
 ##############################
 ##### Simple NB Autoencoder
 ##############################
 
-class RNA_NBAutoEncoder(Module):
+class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
     """ Simple NB autoencoder, basically reimplementation of dca.
         
         Can use a fixed dispersion.
@@ -153,21 +154,6 @@ class RNA_NBAutoEncoder(Module):
             if verbose: printwtime(f'  [{epoch + 1}/{epochs}] train loss: {running_loss:.3f}, test loss: {evalloss:.3f}')
             
         return history
-    
-    def evaluate_latent(self, loader, device, training=False):
-        """ Get latent representation for full dataloader.
-        """
-        with torch.no_grad():
-            if not training is None:
-                self.train(training)
-            latents = []
-
-            for batch in loader:
-                k = batch[0].to(device)
-                latents.append(self.get_latent(k).to("cpu").detach().numpy())
-            latents = np.concatenate(latents)
-
-            return latents
 
 ##############################
 ##### Simple NB Autoencoder with intermediate non-linearities removed

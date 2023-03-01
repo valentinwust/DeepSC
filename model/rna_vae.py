@@ -7,6 +7,7 @@ from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivati
 from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
 from ..util import get_RNA_dataloaders
+from ..module import EvaluateLatentModule
 
 from torch.distributions import Normal, kl_divergence
 
@@ -14,7 +15,7 @@ from torch.distributions import Normal, kl_divergence
 ##### Simple NB Variational Autoencoder
 ##############################
 
-class RNA_NBVariationalAutoEncoder(Module):
+class RNA_NBVariationalAutoEncoder(Module, EvaluateLatentModule):
     """ Simple NB variational autoencoder, basically a simpler reimplementation of scVI.
         
         scVI learns a network for the size factor, this is completely pointless.
@@ -190,21 +191,6 @@ class RNA_NBVariationalAutoEncoder(Module):
             if verbose: printwtime(f'  [{epoch + 1}/{epochs}] train loss: {running_loss["nll"]:.3f}, {running_loss["kl"]:.3f}, {running_loss["kl_raw"]:.3f}, test loss: {evalloss["nll"]:.3f}, {evalloss["kl"]:.3f}, {evalloss["kl_raw"]:.3f}')
             
         return history
-    
-    def evaluate_latent(self, loader, device, training=False, sample=True):
-        """ Get latent representation for full dataloader.
-        """
-        with torch.no_grad():
-            if not training is None:
-                self.train(training)
-            latents = []
-
-            for batch in loader:
-                k = batch[0].to(device)
-                latents.append(self.get_latent(k, sample=sample).to("cpu").detach().numpy())
-            latents = np.concatenate(latents)
-
-            return latents
 
 ##############################
 ##### NB Total Correlation Variational Autoencoder, currently not functional!!!
