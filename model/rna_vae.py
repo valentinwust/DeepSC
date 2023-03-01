@@ -6,6 +6,7 @@ from ..util import printwtime
 from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation
 from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
+from ..util import get_RNA_dataloaders
 
 from torch.distributions import Normal, kl_divergence
 
