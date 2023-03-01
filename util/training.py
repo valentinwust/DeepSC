@@ -3,6 +3,10 @@ from torch.utils.data import TensorDataset, DataLoader
 
 from ..util import printwtime
 
+##############################
+##### Dataloaders
+##############################
+
 def get_RNA_dataloaders(counts, device=None, testshare=0.1, batch_size=64, shuffle=True):
     """ Turn counts into data loaders for training, test set.
     """
@@ -13,13 +17,26 @@ def get_RNA_dataloaders(counts, device=None, testshare=0.1, batch_size=64, shuff
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=shuffle)
     return trainloader, testloader
 
+def get_RNA_dataloader(counts, device=None, batch_size=64, shuffle=False):
+    """ Turn counts into data loader.
+    """
+    dataset = TensorDataset(counts if device is None else counts.to(device))
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    return loader
+
+##############################
+##### Dataloaders
+##############################
+
 def evaluate_mean_loss(model, loader, device, training=False):
     """ Evaluate loss of model on whole data loader.
+        
+        OLD!
     """
     with torch.no_grad():
         if not training is None:
             model.train(training)
-        total_loss = 0.0
+        total_loss = None
 
         for batch in loader:
             k = batch[0].to(device)
@@ -29,6 +46,8 @@ def evaluate_mean_loss(model, loader, device, training=False):
 
 def train_model(model, trainloader, testloader, optimizer, epochs, device, clip_gradients=1., verbose=True):
     """ Train model.
+        
+        OLD!
     """
     printwtime(f"Train model {type(model).__name__}")
     printwtime(f"  Optimizer {type(optimizer).__name__} (lr={optimizer.param_groups[0]['lr']}), {epochs} epochs, device {device}.")

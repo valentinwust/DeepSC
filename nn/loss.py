@@ -1,5 +1,9 @@
 import torch
 
+##############################
+##### Negative Binomial
+##############################
+
 def NB_loss( k_true, k_pred, theta_, mean=True , eps=1e-10, maxtheta=1e6):
     """ Negative Binomial loss.
     """

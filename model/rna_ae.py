@@ -7,6 +7,10 @@ from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
 from ..util import get_RNA_dataloaders
 
+##############################
+##### Simple NB Autoencoder
+##############################
+
 class RNA_NBAutoEncoder(Module):
     """ Simple NB autoencoder, basically reimplementation of dca.
         
@@ -23,7 +27,8 @@ class RNA_NBAutoEncoder(Module):
                  batchnorm=True,
                  bias=True,
                  BNmomentum=.9,
-                 fixed_dispersion=None):
+                 fixed_dispersion=None,
+                 latent_activation=True):
         super().__init__()
         
         self.input_size = input_size
@@ -33,6 +38,7 @@ class RNA_NBAutoEncoder(Module):
         self.decoder_size = decoder_size
         self.batchnorm = batchnorm
         self.activation = activation
+        self.latent_activation = latent_activation
         self.bias = bias
         self.BNmomentum = BNmomentum
         self.fixed_dispersion = fixed_dispersion
@@ -139,6 +145,10 @@ class RNA_NBAutoEncoder(Module):
             if verbose: printwtime(f'  [{epoch + 1}/{epochs}] train loss: {running_loss:.3f}, test loss: {evalloss:.3f}')
             
         return history
+
+##############################
+##### Simple NB Autoencoder with intermediate non-linearities removed
+##############################
 
 class RNA_NBPCA(RNA_NBAutoEncoder):
     """ Simplified version of RNA_NBAutoEncoder, similar to glm-pca?

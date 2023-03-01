@@ -5,6 +5,10 @@ from torch.nn import Module
     
 """
 
+##############################
+##### Preprocessing
+##############################
+
 class RNA_PreprocessLayer(Module):
     """ RNA count preprocessing layer.
         
@@ -24,6 +28,10 @@ class RNA_PreprocessLayer(Module):
         s = k.sum(dim=-1, keepdim=True)
         y = torch.log(k / s + torch.exp(self.offset))
         return y-self.means, s 
+
+##############################
+##### Output Activations
+##############################
 
 class RNA_MeanActivation(Module):
     """ Softmax activation function.
