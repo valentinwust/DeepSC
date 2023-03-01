@@ -71,6 +71,8 @@ class RNA_NBAutoEncoder(Module):
             self.to(device)
          
     def forward(self, k):
+        """ Forward pass through the network.
+        """
         yc, s = self.pre(k)
         latent = self.encoder(yc)
         decoded = self.decoder(latent)
@@ -148,6 +150,21 @@ class RNA_NBAutoEncoder(Module):
             if verbose: printwtime(f'  [{epoch + 1}/{epochs}] train loss: {running_loss:.3f}, test loss: {evalloss:.3f}')
             
         return history
+    
+    def evaluate_latent(self, loader, device, training=False):
+        """ Get latent representation for full dataloader.
+        """
+        with torch.no_grad():
+            if not training is None:
+                self.train(training)
+            latents = []
+
+            for batch in loader:
+                k = batch[0].to(device)
+                latents.append(self.get_latent(k).to("cpu").detach().numpy())
+            latents = np.concatenate(latents)
+
+            return latents
 
 ##############################
 ##### Simple NB Autoencoder with intermediate non-linearities removed
