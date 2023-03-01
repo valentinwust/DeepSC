@@ -209,7 +209,7 @@ class RNA_NBVariationalAutoEncoder(Module):
 ##############################
 
 class RNA_NBtcVariationalAutoEncoder(RNA_NBVariationalAutoEncoder):
-    def __init__(self, *args, **kwargs, tc_weight=1):
+    def __init__(self, tc_weight=1, *args, **kwargs):
         super(SubClass, self).__init__(*args, **kwargs)
         self.tc_weight = tc_weight
     
