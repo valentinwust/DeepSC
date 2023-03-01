@@ -1,5 +1,6 @@
 from torch.nn import Module, Sequential, Linear
 import torch
+import numpy as np
 
 from ..util import printwtime
 from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation
