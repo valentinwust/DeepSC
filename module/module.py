@@ -3,7 +3,7 @@ from torch.nn import Module
 import numpy as np
 
 class EvaluateLatentModule(Module):
-    def __init(self)__:
+    def __init__(self):
         super().__init__()
     
     def evaluate_latent(self, loader, device, training=False, **kwargs):
