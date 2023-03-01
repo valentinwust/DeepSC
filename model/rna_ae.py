@@ -26,6 +26,7 @@ class RNA_NBAutoEncoder(Module):
                  decoder_size=[64],
                  activation=True,
                  batchnorm=True,
+                 dropout=0., # No dropout for latent?
                  bias=True,
                  BNmomentum=.9,
                  fixed_dispersion=None,
@@ -39,6 +40,7 @@ class RNA_NBAutoEncoder(Module):
         self.decoder_size = decoder_size
         self.batchnorm = batchnorm
         self.activation = activation
+        self.dropout = dropout
         self.latent_activation = latent_activation
         self.bias = bias
         self.BNmomentum = BNmomentum
@@ -51,11 +53,11 @@ class RNA_NBAutoEncoder(Module):
         self.pre = RNA_PreprocessLayer(self.input_size, counts)#.to(self.device))
         
         self.encoder = make_FC_encoder(self.input_size, self.encoder_size,
-                                     batchnorm=self.batchnorm, activation=self.activation, bias=self.bias, BNmomentum=self.BNmomentum,
+                                     batchnorm=self.batchnorm, activation=self.activation, dropout=dropout, bias=self.bias, BNmomentum=self.BNmomentum,
                                      final_activation=self.latent_activation)
         
         self.decoder = make_FC_decoder(self.encoder_size[-1], self.decoder_size,
-                                     batchnorm=self.batchnorm, activation=self.activation, bias=self.bias, BNmomentum=self.BNmomentum)
+                                     batchnorm=self.batchnorm, activation=self.activation, dropout=dropout, bias=self.bias, BNmomentum=self.BNmomentum)
         
         self.decoder_mu = Sequential(
                                     Linear(self.decoder_size[-1] if len(self.decoder_size)>0 else self.encoder_size[-1],
@@ -187,3 +189,7 @@ class RNA_NBPCA(RNA_NBAutoEncoder):
                  batchnorm=False,
                  bias=True,
                  fixed_dispersion=dispersion)
+
+
+
+

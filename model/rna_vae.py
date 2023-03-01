@@ -1,4 +1,5 @@
 from torch.nn import Module, Sequential, Linear
+import numpy as np
 
 from ..util import printwtime
 from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation
@@ -6,6 +7,10 @@ from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
 
 from torch.distributions import Normal, kl_divergence
+
+##############################
+##### Simple NB Variational Autoencoder
+##############################
 
 class RNA_NBVariationalAutoEncoder(Module):
     """ Simple NB variational autoencoder, basically a simpler reimplementation of scVI.
@@ -19,6 +24,7 @@ class RNA_NBVariationalAutoEncoder(Module):
                  decoder_size=[64],
                  activation=True,
                  batchnorm=True,
+                 dropout=0.,
                  bias=True,
                  BNmomentum=.9,
                  fixed_dispersion=None,
@@ -34,6 +40,7 @@ class RNA_NBVariationalAutoEncoder(Module):
         self.decoder_size = decoder_size
         self.batchnorm = batchnorm
         self.activation = activation
+        self.dropout = dropout
         self.bias = bias
         self.var_eps = var_eps
         self.BNmomentum = BNmomentum
@@ -48,13 +55,13 @@ class RNA_NBVariationalAutoEncoder(Module):
         self.pre = RNA_PreprocessLayer(self.input_size, counts)#.to(self.device))
         
         self.encoder = make_FC_encoder(self.input_size, self.encoder_size[:-1],
-                                     batchnorm=self.batchnorm, activation=self.activation, bias=self.bias, BNmomentum=self.BNmomentum)
+                                     batchnorm=self.batchnorm, activation=self.activation, dropout=dropout, bias=self.bias, BNmomentum=self.BNmomentum)
         
         self.encoder_mu = Linear(self.encoder_size[-2] if len(self.encoder_size)>1 else self.input_size, self.encoder_size[-1])
         self.encoder_var = Linear(self.encoder_size[-2] if len(self.encoder_size)>1 else self.input_size, self.encoder_size[-1])
         
         self.decoder = make_FC_decoder(self.encoder_size[-1], self.decoder_size,
-                                     batchnorm=self.batchnorm, activation=self.activation, bias=self.bias, BNmomentum=self.BNmomentum)
+                                     batchnorm=self.batchnorm, activation=self.activation, dropout=dropout, bias=self.bias, BNmomentum=self.BNmomentum)
         
         self.decoder_mu = Sequential(
                                     Linear(self.decoder_size[-1] if len(self.decoder_size)>0 else self.encoder_size[-1],
@@ -71,6 +78,8 @@ class RNA_NBVariationalAutoEncoder(Module):
             self.to(device)
          
     def forward(self, k):
+        """ Forward pass through the network.
+        """
         yc, s = self.pre(k)
         latent_intermediate = self.encoder(yc)
         latent_mu = self.encoder_mu(latent_intermediate)
@@ -103,11 +112,11 @@ class RNA_NBVariationalAutoEncoder(Module):
             latent = latent_mu
         return latent
     
-    def get_loss(self, k):
+    def get_loss(self, k, kout=None):
         """ Get loss for k, not mean reduced along batch.
         """
         mean, theta, latent_mu, latent_var = self.forward(k)
-        loss = self.loss(k, mean, theta)
+        loss = self.loss(k if kout is None else kout, mean, theta)
         
         kl_loss = self.kl_weight*kl_divergence(Normal(latent_mu, torch.sqrt(latent_var)),
                                                Normal(torch.zeros_like(latent_mu), torch.ones_like(latent_var))).mean(-1)
@@ -123,8 +132,9 @@ class RNA_NBVariationalAutoEncoder(Module):
             length = len(loader.dataset)
 
             for batch in loader:
-                k = batch[0].to(device)
-                loss = self.get_loss(k)
+                kin = batch[0].to(device)
+                kout = batch[1].to(device)
+                loss = self.get_loss(kin, kout)
                 if total_loss is None:
                     total_loss = {key:loss[key].sum().item()/length for key in loss}
                 else:
@@ -133,10 +143,10 @@ class RNA_NBVariationalAutoEncoder(Module):
 
             return total_loss
     
-    def train_model(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True, clip_gradients=1., kl_warmup=30):
+    def train_model(self, counts, batchsize=128, epochs=200, device="cuda:0", lr=1e-3, verbose=True, clip_gradients=1., kl_warmup=170, countsout=None):
         """ Train model.
         """
-        trainloader, testloader = get_RNA_dataloaders(counts, batch_size=128)
+        trainloader, testloader = get_RNA_dataloaders([counts, counts if countsout is None else countsout], batch_size=batchsize)
         printwtime(f"Train model {type(self).__name__}")
         
         optimizer = torch.optim.RMSprop(self.parameters(), lr=lr)
@@ -145,16 +155,17 @@ class RNA_NBVariationalAutoEncoder(Module):
         history = {"training_loss":[], "test_loss":[], "epoch":[], "lr":[]}
         
         for epoch in range(epochs):  # loop over the dataset multiple times
-            weightkey = {"nll":1, "kl_raw":1, "kl":1 if epoch>kl_warmup else epoch/kl_warmup}
+            weightkey = {"nll":1, "kl_raw":1, "kl":1 if epoch>=kl_warmup else epoch/kl_warmup}
             running_loss = None
             length = len(trainloader.dataset)
             self.train()
             for batch in trainloader:
                 optimizer.zero_grad()
 
-                data = batch[0].to(device)
-                loss = self.get_loss(data)
-                loss = {key:loss[key].mean()*data.shape[0]*weightkey[key] for key in loss}
+                datain = batch[0].to(device)
+                dataout = batch[1].to(device)
+                loss = self.get_loss(datain, dataout)
+                loss = {key:loss[key].mean()*dataout.shape[0]*weightkey[key] for key in loss}
                 (loss["nll"]+loss["kl"]).backward()
                 if clip_gradients is not None:
                     torch.nn.utils.clip_grad_norm_(self.parameters(), clip_gradients)
@@ -177,8 +188,25 @@ class RNA_NBVariationalAutoEncoder(Module):
             if verbose: printwtime(f'  [{epoch + 1}/{epochs}] train loss: {running_loss["nll"]:.3f}, {running_loss["kl"]:.3f}, {running_loss["kl_raw"]:.3f}, test loss: {evalloss["nll"]:.3f}, {evalloss["kl"]:.3f}, {evalloss["kl_raw"]:.3f}')
             
         return history
+    
+    def evaluate_latent(self, loader, device, training=False, sample=True):
+        """ Get latent representation for full dataloader.
+        """
+        with torch.no_grad():
+            if not training is None:
+                self.train(training)
+            latents = []
 
+            for batch in loader:
+                k = batch[0].to(device)
+                latents.append(self.get_latent(k, sample=sample).to("cpu").detach().numpy())
+            latents = np.concatenate(latents)
 
+            return latents
+
+##############################
+##### NB Total Correlation Variational Autoencoder, currently not functional!!!
+##############################
 
 class RNA_NBtcVariationalAutoEncoder(RNA_NBVariationalAutoEncoder):
     def __init__(self, *args, **kwargs, tc_weight=1):
