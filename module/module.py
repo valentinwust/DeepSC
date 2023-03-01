@@ -2,7 +2,7 @@ import torch
 from torch.nn import Module
 import numpy as np
 
-class EvaluateLatentModule(Module):
+class EvaluateLatentModule():
     def __init__(self):
         super().__init__()
     
