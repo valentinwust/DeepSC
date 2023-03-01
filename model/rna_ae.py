@@ -50,7 +50,8 @@ class RNA_NBAutoEncoder(Module):
         self.pre = RNA_PreprocessLayer(self.input_size, counts)#.to(self.device))
         
         self.encoder = make_FC_encoder(self.input_size, self.encoder_size,
-                                     batchnorm=self.batchnorm, activation=self.activation, bias=self.bias, BNmomentum=self.BNmomentum)
+                                     batchnorm=self.batchnorm, activation=self.activation, bias=self.bias, BNmomentum=self.BNmomentum,
+                                     final_activation=self.latent_activation)
         
         self.decoder = make_FC_decoder(self.encoder_size[-1], self.decoder_size,
                                      batchnorm=self.batchnorm, activation=self.activation, bias=self.bias, BNmomentum=self.BNmomentum)
@@ -81,21 +82,21 @@ class RNA_NBAutoEncoder(Module):
             theta = torch.tensor(self.fixed_dispersion)
         return mean, theta
     
-    def get_latent(self, k, wBNA=True):
+    def get_latent(self, k): #, wBNA=True):
         """ Get latent representation, optionally without BN and activation function.
         """
         yc, s = self.pre(k)
-        latent = self.encoder(yc) if wBNA else self.encoder[:-sum([self.activation+self.batchnorm])](yc)
+        latent = self.encoder(yc) # if wBNA else self.encoder[:-sum([self.activation+self.batchnorm])](yc)
         return latent
     
-    def get_loss(self, k):
+    def get_loss(self, k, kout=None):
         """ Get loss for k, not mean reduced along batch.
         """
         mean, theta = self.forward(k)
-        loss = self.loss(k, mean, theta)
+        loss = self.loss(k if kout is None else kout, mean, theta)
         return {"nll": loss}
     
-    def evaluate_mean_loss(self, loader, device, training=False):
+    def evaluate_mean_loss(self, loader, device="cuda:0", training=False):
         """ Evaluate loss of model on whole data loader.
         """
         with torch.no_grad():
@@ -104,15 +105,16 @@ class RNA_NBAutoEncoder(Module):
             total_loss = 0.
 
             for batch in loader:
-                k = batch[0].to(device)
-                total_loss += self.get_loss(k)["nll"].sum().item()
+                kin = batch[0].to(device)
+                kout = batch[0].to(device)
+                total_loss += self.get_loss(kin, kout)["nll"].sum().item()
         
-            return total_loss/len(loader.dataset)
+            return {"nll": total_loss/len(loader.dataset)}
     
-    def train_model(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True, clip_gradients=1.):
+    def train_model(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True, clip_gradients=1., countsout=None):
         """ Train model.
         """
-        trainloader, testloader = get_RNA_dataloaders(counts, batch_size=128)
+        trainloader, testloader = get_RNA_dataloaders([counts, counts if countsout is None else countsout], batch_size=batchsize)
         printwtime(f"Train model {type(self).__name__}")
         
         optimizer = torch.optim.RMSprop(self.parameters(), lr=lr)
@@ -126,17 +128,18 @@ class RNA_NBAutoEncoder(Module):
             for batch in trainloader:
                 optimizer.zero_grad()
                 
-                data = batch[0].to(device)
-                loss = self.get_loss(data)["nll"].mean()
+                datain = batch[0].to(device)
+                dataout = batch[1].to(device)
+                loss = self.get_loss(datain, dataout)["nll"].mean()
                 loss.backward()
                 if clip_gradients is not None:
                     torch.nn.utils.clip_grad_norm_(self.parameters(), clip_gradients)
                 optimizer.step()
                 
-                running_loss += loss.item()*data.shape[0]
+                running_loss += loss.item()*dataout.shape[0]
             running_loss = running_loss / len(trainloader.dataset)
             
-            evalloss = self.evaluate_mean_loss(testloader, device, False)
+            evalloss = self.evaluate_mean_loss(testloader, device, False)["nll"]
             
             history["epoch"].append(epoch)
             history["training_loss"].append(running_loss)

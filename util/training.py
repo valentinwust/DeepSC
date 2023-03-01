@@ -7,20 +7,20 @@ from ..util import printwtime
 ##### Dataloaders
 ##############################
 
-def get_RNA_dataloaders(counts, device=None, testshare=0.1, batch_size=64, shuffle=True):
+def get_RNA_dataloaders(tensors, device=None, testshare=0.1, batch_size=64, shuffle=True):
     """ Turn counts into data loaders for training, test set.
     """
-    dataset = TensorDataset(counts if device is None else counts.to(device))
+    dataset = TensorDataset(*[counts if device is None else counts.to(device) for counts in tensors])
     test_size = int(len(dataset)*testshare)
     trainingset, testset = torch.utils.data.random_split(dataset, [ len(dataset)-test_size, test_size])
     trainloader = DataLoader(trainingset, batch_size=batch_size, shuffle=shuffle)
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=shuffle)
     return trainloader, testloader
 
-def get_RNA_dataloader(counts, device=None, batch_size=64, shuffle=False):
+def get_RNA_dataloader(tensors, device=None, batch_size=64, shuffle=False):
     """ Turn counts into data loader.
     """
-    dataset = TensorDataset(counts if device is None else counts.to(device))
+    dataset = TensorDataset(*[counts if device is None else counts.to(device) for counts in tensors])
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     return loader
 
