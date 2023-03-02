@@ -15,11 +15,11 @@ def plot_latentshap_singlegene(shap_values, latent, eXadata, geneindex, ctypekey
     sns.stripplot(x=eXadata.obs[ctypekey],
                   y=shap_values[latentdim][:,geneindex],
                   ax=ax[1,0])
-    sns.stripplot(x=np.asarray(eXadata[:,i].X)[:,0],
+    sns.stripplot(x=np.asarray(eXadata[:,geneindex].X)[:,0],
                   y=eXadata.obs[ctypekey],
                   ax=ax[0,1])
     
-    sns.scatterplot(x=np.asarray(eXadata[:,i].X)[:,0],
+    sns.scatterplot(x=np.asarray(eXadata[:,geneindex].X)[:,0],
                     y=shap_values[latentdim][:,geneindex],
                     hue=eXadata.obs[ctypekey],
                     ax=ax[1,1])
