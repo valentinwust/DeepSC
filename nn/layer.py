@@ -14,12 +14,14 @@ class RNA_PreprocessLayer(Module):
         
         Mean and offset are optionally trainable.
         For simple NB AE and NB PCA, this does not seem to make any difference, and it barely changes them.
+        
+        Initial offset is assumed to be the exponent in base 10.
     """
     def __init__(self, N, counts, means_trainable=False, offset_trainable=False, initial_offset=-4.):
         super().__init__()
         self.means = torch.nn.Parameter(torch.log(counts/counts.sum(dim=-1)[:,None] + torch.exp(torch.tensor(initial_offset))).mean(0))
         self.means.requires_grad = means_trainable
-        self.offset = torch.nn.Parameter(torch.tensor([initial_offset]).repeat(N))
+        self.offset = torch.nn.Parameter(torch.tensor([initial_offset*np.log(10)]).repeat(N))
         self.offset.requires_grad = offset_trainable
     
     def forward(self, k):
