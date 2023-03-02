@@ -28,7 +28,7 @@ class RNA_PreprocessLayer(Module):
         super().__init__()
         self.means = torch.nn.Parameter(torch.log(counts/counts.sum(dim=-1)[:,None] + torch.exp(torch.tensor(initial_offset))).mean(0))
         self.means.requires_grad = means_trainable
-        self.offset = torch.nn.Parameter(torch.tensor([initial_offset*np.log(10)]).repeat(N))
+        self.offset = torch.nn.Parameter(torch.tensor([initial_offset*torch.log(10.)]).repeat(N))
         self.offset.requires_grad = offset_trainable
     
     def forward(self, k):
