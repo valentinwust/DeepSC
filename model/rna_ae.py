@@ -31,10 +31,11 @@ class GeneExpressionExplainModel(Module):
     def forward(self, x):
         latent = self.encoder(x)
         decoded = self.decoder(latent)
-        rho = self.decoder_mu[0](decoded)
         if not self.log1p:
+            rho = self.decoder_mu[0](decoded)
             return rho[...,self.geneindices]
         else:
+            rho = self.decoder_mu(decoded)
             k = rho*self.target_sum
             return torch.log(k+1)[...,self.geneindices]
 

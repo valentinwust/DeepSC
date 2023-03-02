@@ -33,9 +33,9 @@ class shapPCA():
         """ Explain genes using SHAP values.
         """
         intercept = np.zeros(len(geneindices))
-        explainer = shap.explainers.Linear((coeff[geneindices], intercept), adata.layers["pcainput"])
+        explainer = shap.explainers.Linear((self.coeff[geneindices], intercept), self.adata.layers["pcainput"])
         if explain_indices is None:
-            shap_values = explainer.shap_values(adata.layers["pcainput"])
+            shap_values = explainer.shap_values(self.adata.layers["pcainput"])
         else:
-            shap_values = explainer.shap_values(adata.layers["pcainput"][explain_indices])
+            shap_values = explainer.shap_values(self.adata.layers["pcainput"][explain_indices])
         return shap_values
