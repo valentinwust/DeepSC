@@ -15,6 +15,23 @@ from ..module import EvaluateLatentModule
 ##### Simple NB Autoencoder
 ##############################
 
+class GeneExpressionExplainModel(Module):
+    """ Helper module to explain AE gene expression.
+    """
+    def __init__(self, AE, geneindices):
+        super().__init__()
+        self.encoder = AE.encoder
+        self.decoder = AE.decoder
+        self.decoder_mu = AE.decoder_mu
+        self.decoder_theta = AE.decoder_theta
+        self.geneindices = geneindices
+    
+    def forward(self, x):
+        latent = self.encoder(x)
+        decoded = self.decoder(latent)
+        rho = self.decoder_mu[0](decoded)
+        return rho[...,self.geneindices]
+
 class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
     """ Simple NB autoencoder, basically reimplementation of dca.
         
@@ -157,8 +174,8 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
             
         return history
     
-    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
-        """ Explain latent dimensions using DeepExplainer from shap.
+    def explain_model(self, model, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
+        """ Explain output of model using shap. model should be a part of AE stat starts after pre.
             
             shap can't easily deal with custom layers, so drop the preprocessing from explainer.
             This doesn't affect the result anyway.
@@ -172,10 +189,22 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         background = self.pre.normalize_counts(counts[background_ind].to(device))
         explain = self.pre.normalize_counts(counts[explain_ind].to(device))
         
-        explainer = shap.DeepExplainer(self.encoder, background)
+        explainer = shap.DeepExplainer(model, background)
         shap_values = explainer.shap_values(explain)
         
         return shap_values, explain_ind
+    
+    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
+        """ Explain latent dimensions using DeepExplainer from shap.
+        """
+        model = self.encoder
+        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_)
+    
+    def explain_genemean(self, counts, Nbackground, Nexplain, geneindices, device="cuda:0", background_ind_=None, explain_ind_=None):
+        """ Explain gene expression mean (pre softmax) using DeepExplainer from shap.
+        """
+        model = GeneExpressionExplainModel(self, geneindices)
+        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_)
 
 ##############################
 ##### Simple NB Autoencoder with intermediate non-linearities removed
