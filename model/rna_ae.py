@@ -159,17 +159,21 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
     
     def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
         """ Explain latent dimensions using DeepExplainer from shap.
+            
+            shap can't easily deal with custom layers, so drop the preprocessing from explainer.
+            This doesn't affect the result anyway.
         """
         if background_ind_ is None: background_ind = np.random.choice(np.arange(counts.shape[0]), Nbackground, replace=False)
         else:                       background_ind = background_ind_
         if explain_ind_ is None:    explain_ind = np.random.choice(np.arange(counts.shape[0]), Nexplain, replace=False)
         else:                       explain_ind = explain_ind_
         
-        background = counts[background_ind].to(device)
-        explain = counts[explain_ind].to(device)
+        # Preprocess here!
+        background = self.pre.normalize_counts(counts[background_ind].to(device))
+        explain = self.pre.normalize_counts(counts[explain_ind].to(device))
         
-        explainer = shap.DeepExplainer(self.encoder, self.pre.normalize_counts(background))
-        shap_values = explainer.shap_values(AE.pre.normalize_counts(explain))
+        explainer = shap.DeepExplainer(self.encoder, background)
+        shap_values = explainer.shap_values(explain)
         
         return shap_values, explain_ind
 
