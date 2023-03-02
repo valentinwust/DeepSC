@@ -1,6 +1,12 @@
 import torch
 from torch.nn import Module
 
+# Import shap here and add custom layers
+import shap
+from shap.explainers._deep.deep_pytorch import nonlinear_1d
+shap.explainers._deep.deep_pytorch.op_handler["RNA_MeanActivation"] = nonlinear_1d
+shap.explainers._deep.deep_pytorch.op_handler["RNA_DispersionActivation"] = nonlinear_1d
+
 """ Set all used values as Parameter, then the model shifts them to the right device automatically!
     
 """

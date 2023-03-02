@@ -18,19 +18,25 @@ from ..module import EvaluateLatentModule
 class GeneExpressionExplainModel(Module):
     """ Helper module to explain AE gene expression.
     """
-    def __init__(self, AE, geneindices):
+    def __init__(self, AE, geneindices, log1p=False, target_sum=1e4):
         super().__init__()
         self.encoder = AE.encoder
         self.decoder = AE.decoder
         self.decoder_mu = AE.decoder_mu
         self.decoder_theta = AE.decoder_theta
         self.geneindices = geneindices
+        self.log1p = log1p
+        self.target_sum = torch.tensor(target_sum)
     
     def forward(self, x):
         latent = self.encoder(x)
         decoded = self.decoder(latent)
         rho = self.decoder_mu[0](decoded)
-        return rho[...,self.geneindices]
+        if not self.log1p:
+            return rho[...,self.geneindices]
+        else:
+            k = rho*self.target_sum
+            return torch.log(k+1)[...,self.geneindices]
 
 class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
     """ Simple NB autoencoder, basically reimplementation of dca.
@@ -200,10 +206,10 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         model = self.encoder
         return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_)
     
-    def explain_genemean(self, counts, Nbackground, Nexplain, geneindices, device="cuda:0", background_ind_=None, explain_ind_=None):
+    def explain_genemean(self, counts, Nbackground, Nexplain, geneindices, device="cuda:0", background_ind_=None, explain_ind_=None, log1p=False):
         """ Explain gene expression mean (pre softmax) using DeepExplainer from shap.
         """
-        model = GeneExpressionExplainModel(self, geneindices)
+        model = GeneExpressionExplainModel(self, geneindices, log1p=log1p)
         return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_)
 
 ##############################
