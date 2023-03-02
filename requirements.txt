@@ -1,0 +1,8 @@
+numpy==1.22.3
+numba
+scanpy
+loompy
+torch
+shap
+matplotlib
+seaborn

@@ -2,6 +2,8 @@ from torch.nn import Module, Sequential, Linear
 import torch
 import numpy as np
 
+import shap
+
 from ..util import printwtime
 from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation
 from ..nn import make_FC_encoder, make_FC_decoder
@@ -29,7 +31,7 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
                  batchnorm=True,
                  dropout=0., # No dropout for latent?
                  bias=True,
-                 BNmomentum=.9,
+                 BNmomentum=.1,
                  fixed_dispersion=None,
                  latent_activation=True):
         super().__init__()
@@ -154,6 +156,22 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
             if verbose: printwtime(f'  [{epoch + 1}/{epochs}] train loss: {running_loss:.3f}, test loss: {evalloss:.3f}')
             
         return history
+    
+    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
+        """ Explain latent dimensions using DeepExplainer from shap.
+        """
+        if background_ind_ is None: background_ind = np.random.choice(np.arange(counts.shape[0]), Nbackground, replace=False)
+        else:                       background_ind = background_ind_
+        if explain_ind_ is None:    explain_ind = np.random.choice(np.arange(counts.shape[0]), Nexplain, replace=False)
+        else:                       explain_ind = explain_ind_
+        
+        background = counts[background_ind].to(device)
+        explain = counts[explain_ind].to(device)
+        
+        explainer = shap.DeepExplainer(self.encoder, self.pre.normalize_counts(background))
+        shap_values = explainer.shap_values(AE.pre.normalize_counts(explain))
+        
+        return shap_values, explain_ind
 
 ##############################
 ##### Simple NB Autoencoder with intermediate non-linearities removed

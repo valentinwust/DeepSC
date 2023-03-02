@@ -29,7 +29,7 @@ class RNA_NBVariationalAutoEncoder(Module, EvaluateLatentModule):
                  batchnorm=True,
                  dropout=0.,
                  bias=True,
-                 BNmomentum=.9,
+                 BNmomentum=.1,
                  fixed_dispersion=None,
                  var_eps=1e-4,
                  kl_weight=1e-3,
