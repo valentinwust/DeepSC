@@ -2,15 +2,18 @@ import torch
 from torch.nn import Module
 import numpy as np
 
+""" Set all used values as Parameter, then the model shifts them to the right device automatically!
+    
+    SHAP cannot deal with non-linearities that are not explicitly in a torch layer!
+    E.g. log1p has to be put in its own layer to get the right results.
+"""
+
 # Import shap here and add custom layers
 import shap
 from shap.explainers._deep.deep_pytorch import nonlinear_1d
 shap.explainers._deep.deep_pytorch.op_handler["RNA_MeanActivation"] = nonlinear_1d
 shap.explainers._deep.deep_pytorch.op_handler["RNA_DispersionActivation"] = nonlinear_1d
-
-""" Set all used values as Parameter, then the model shifts them to the right device automatically!
-    
-"""
+shap.explainers._deep.deep_pytorch.op_handler["RNA_Log1pActivation"] = nonlinear_1d
 
 ##############################
 ##### Preprocessing
@@ -57,3 +60,11 @@ class RNA_DispersionActivation(Module):
     def forward(self, x):
         return torch.clip(torch.exp(x), min=1e-4, max=1e6)
         #return torch.clip(torch.nn.functional.softplus(x), min=1e-4, max=1e4)
+
+class RNA_Log1pActivation(Module):
+    """ Log(x+1).
+    """
+    def forward(self, x):
+        return torch.log(x+1)
+
+

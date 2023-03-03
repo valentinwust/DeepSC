@@ -5,7 +5,7 @@ import numpy as np
 import shap
 
 from ..util import printwtime
-from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation
+from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation, RNA_Log1pActivation
 from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
 from ..util import get_RNA_dataloaders
@@ -24,6 +24,7 @@ class GeneExpressionExplainModel(Module):
         self.decoder = AE.decoder
         self.decoder_mu = AE.decoder_mu
         self.decoder_theta = AE.decoder_theta
+        self.log1p_layer = RNA_Log1pActivation()
         self.geneindices = geneindices
         self.log1p = log1p
         self.target_sum = torch.tensor(target_sum)
@@ -35,9 +36,9 @@ class GeneExpressionExplainModel(Module):
             rho = self.decoder_mu[0](decoded)
             return rho[...,self.geneindices]
         else:
-            rho = self.decoder_mu(decoded)
+            rho = self.decoder_mu(decoded)[...,self.geneindices]
             k = rho*self.target_sum
-            return torch.log(k+1)[...,self.geneindices]
+            return self.log1p_layer(k)
 
 class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
     """ Simple NB autoencoder, basically reimplementation of dca.
