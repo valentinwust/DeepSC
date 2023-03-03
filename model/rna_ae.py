@@ -217,7 +217,7 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         shap_values = np.asarray(shap_values)
         
         if scale_var:
-            backgroundloader = DeepSC.util.get_RNA_dataloader([background], batch_size=128)
+            backgroundloader = get_RNA_dataloader([background], batch_size=128)
             backgroundout = model.forward_loader(backgroundloader, device)
             backgroundoutstd = backgroundout.std(axis=0)
             shap_values = shap_values/backgroundoutstd[:,None,None]

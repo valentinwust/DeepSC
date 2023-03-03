@@ -38,4 +38,7 @@ class shapPCA():
             shap_values = explainer.shap_values(self.adata.layers["pcainput"])
         else:
             shap_values = explainer.shap_values(self.adata.layers["pcainput"][explain_indices])
+        if type(shap_values)!=list:
+            shap_values = [shap_values]
+        shap_values = np.asarray(shap_values)
         return shap_values
