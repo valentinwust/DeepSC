@@ -8,8 +8,8 @@ from ..util import printwtime
 from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivation, RNA_Log1pActivation
 from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
-from ..util import get_RNA_dataloaders
-from ..module import EvaluateLatentModule
+from ..util import get_RNA_dataloaders, get_RNA_dataloader
+from ..module import EvaluateLatentModule, RNAmodel_evaluate_out
 
 ##############################
 ##### Simple NB Autoencoder
@@ -39,6 +39,19 @@ class GeneExpressionExplainModel(Module):
             rho = self.decoder_mu(decoded)[...,self.geneindices]
             k = rho*self.target_sum
             return self.log1p_layer(k)
+    
+    def forward_loader(self, loader, device, training=False, **kwargs):
+        with torch.no_grad():
+            if not training is None:
+                self.train(training)
+            outs = []
+
+            for batch in loader:
+                k = batch[0].to(device)
+                outs.append(self.forward(k, **kwargs).to("cpu").detach().numpy())
+            outs = np.concatenate(outs)
+
+            return outs
 
 class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
     """ Simple NB autoencoder, basically reimplementation of dca.
@@ -182,7 +195,7 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
             
         return history
     
-    def explain_model(self, model, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
+    def explain_model(self, model, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None, scale_var=False):
         """ Explain output of model using shap. model should be a part of AE stat starts after pre.
             
             shap can't easily deal with custom layers, so drop the preprocessing from explainer.
@@ -199,20 +212,29 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         
         explainer = shap.DeepExplainer(model, background)
         shap_values = explainer.shap_values(explain)
+        if not type(shap_values)==list:
+            shap_values = [shap_values]
+        shap_values = np.asarray(shap_values)
+        
+        if scale_var:
+            backgroundloader = DeepSC.util.get_RNA_dataloader([background], batch_size=128)
+            backgroundout = model.forward_loader(backgroundloader, device)
+            backgroundoutstd = backgroundout.std(axis=0)
+            shap_values = shap_values/backgroundoutstd[:,None,None]
         
         return shap_values, explain_ind
     
-    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
+    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None, scale_var=False):
         """ Explain latent dimensions using DeepExplainer from shap.
         """
         model = self.encoder
-        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_)
+        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_, scale_var=scale_var)
     
-    def explain_genemean(self, counts, Nbackground, Nexplain, geneindices, device="cuda:0", background_ind_=None, explain_ind_=None, log1p=False):
+    def explain_genemean(self, counts, Nbackground, Nexplain, geneindices, device="cuda:0", background_ind_=None, explain_ind_=None, log1p=False, scale_var=False):
         """ Explain gene expression mean (pre softmax) using DeepExplainer from shap.
         """
         model = GeneExpressionExplainModel(self, geneindices, log1p=log1p)
-        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_)
+        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_, scale_var=scale_var)
 
 ##############################
 ##### Simple NB Autoencoder with intermediate non-linearities removed
