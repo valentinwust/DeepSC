@@ -11,8 +11,8 @@ class shapPCA():
     """ Perform PCA on counts, and use linear SHAP explainer to explain the output for specific genes.
     """
     
-    def __init__(self, counts, target_sum=1e4, n_comps=50):
-        self.adata = anndata.AnnData(np.asarray(counts).copy())
+    def __init__(self, counts, target_sum=1e4, n_comps=50, obs=None, var=None):
+        self.adata = anndata.AnnData(np.asarray(counts).copy(), obs=obs, var=var)
         self.adata.layers["raw_counts"] = counts.copy()
         
         self.prepare_pca_shap(target_sum=target_sum)
