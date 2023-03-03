@@ -9,7 +9,7 @@ from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivati
 from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
 from ..util import get_RNA_dataloaders, get_RNA_dataloader
-from ..module import EvaluateLatentModule, RNAmodel_evaluate_out
+from ..module import EvaluateLatentModule
 
 ##############################
 ##### Simple NB Autoencoder
@@ -224,11 +224,11 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         
         return shap_values, explain_ind
     
-    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None, scale_var=False):
+    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
         """ Explain latent dimensions using DeepExplainer from shap.
         """
         model = self.encoder
-        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_, scale_var=scale_var)
+        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_)
     
     def explain_genemean(self, counts, Nbackground, Nexplain, geneindices, device="cuda:0", background_ind_=None, explain_ind_=None, log1p=False, scale_var=False):
         """ Explain gene expression mean (pre softmax) using DeepExplainer from shap.
