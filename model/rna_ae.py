@@ -9,6 +9,7 @@ from ..nn import RNA_PreprocessLayer, RNA_MeanActivation, RNA_DispersionActivati
 from ..nn import make_FC_encoder, make_FC_decoder
 from ..nn import NB_loss
 from ..util import get_RNA_dataloaders, get_RNA_dataloader
+from ..util import sample_indices
 from ..module import EvaluateLatentModule
 
 ##############################
@@ -195,16 +196,14 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
             
         return history
     
-    def explain_model(self, model, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None, scale_var=False):
+    def explain_model(self, model, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None, scale_var=False, sample_group=None):
         """ Explain output of model using shap. model should be a part of AE stat starts after pre.
             
             shap can't easily deal with custom layers, so drop the preprocessing from explainer.
             This doesn't affect the result anyway.
         """
-        if background_ind_ is None: background_ind = np.random.choice(np.arange(counts.shape[0]), Nbackground, replace=False)
-        else:                       background_ind = background_ind_
-        if explain_ind_ is None:    explain_ind = np.random.choice(np.arange(counts.shape[0]), Nexplain, replace=False)
-        else:                       explain_ind = explain_ind_
+        background_ind = sample_indices(Nbackground, counts.shape[0], sample_group) if background_ind_ is None else background_ind_
+        explain_ind = sample_indices(Nexplain, counts.shape[0], sample_group) if explain_ind_ is None else explain_ind_
         
         # Preprocess here!
         background = self.pre.normalize_counts(counts[background_ind].to(device))
@@ -224,17 +223,19 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         
         return shap_values, explain_ind
     
-    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None):
+    def explain_latent(self, counts, Nbackground, Nexplain, device="cuda:0", background_ind_=None, explain_ind_=None, sample_group=None):
         """ Explain latent dimensions using DeepExplainer from shap.
         """
         model = self.encoder
-        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_)
+        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_, sample_group=sample_group)
     
-    def explain_genemean(self, counts, Nbackground, Nexplain, geneindices, device="cuda:0", background_ind_=None, explain_ind_=None, log1p=False, scale_var=False):
+    def explain_genemean(self, counts, Nbackground, Nexplain, geneindices, device="cuda:0", background_ind_=None, explain_ind_=None,
+                               log1p=False, scale_var=False, sample_group=None):
         """ Explain gene expression mean (pre softmax) using DeepExplainer from shap.
         """
         model = GeneExpressionExplainModel(self, geneindices, log1p=log1p)
-        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_, scale_var=scale_var)
+        return self.explain_model(model, counts, Nbackground, Nexplain, device=device, background_ind_=background_ind_, explain_ind_=explain_ind_,
+                                         scale_var=scale_var, sample_group=sample_group)
 
 ##############################
 ##### Simple NB Autoencoder with intermediate non-linearities removed
