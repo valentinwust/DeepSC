@@ -1,4 +1,6 @@
 from datetime import datetime
+import numpy as np
+import pandas as pd
 
 def printwtime(text):
     """ Print text with current time.
