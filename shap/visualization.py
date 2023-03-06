@@ -7,22 +7,28 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 ##### Plot SHAP explanation for single gene and latent dimension
 ##############################
 
-def plot_latentshap_singlegene(shap_values, latent, eXadata, geneindex, ctypekey, latentdim, geneskey="gene_name"):
+def plot_latentshap_singlegene(shap_values, eXadata, geneindex, ctypekey, latentdim, geneskey="gene_name", latent=None, layerkey=None, latentkey="X_latent"):
     """ Plot SHAP explanation for single gene and latent dimension.
     """
     fig, ax = plt.subplots(2,2,figsize=(15,15))
     
-    sns.stripplot(x=eXadata.obs[ctypekey],
-                  y=shap_values[latentdim][:,geneindex],
+    exprdata = eXadata.X[:,geneindex] if layerkey is None else eXadata.layers[layerkey][:,geneindex]
+    shapdata = shap_values[latentdim][:,geneindex]
+    ctype = eXadata.obs[ctypekey]
+    
+    sns.stripplot(x=ctype,
+                  y=shapdata,
                   ax=ax[1,0])
-    sns.stripplot(x=np.asarray(eXadata[:,geneindex].X)[:,0],
-                  y=eXadata.obs[ctypekey],
+    sns.stripplot(x=exprdata,
+                  y=ctype,
                   ax=ax[0,1])
     
-    sns.scatterplot(x=np.asarray(eXadata[:,geneindex].X)[:,0],
-                    y=shap_values[latentdim][:,geneindex],
-                    hue=eXadata.obs[ctypekey],
+    sns.scatterplot(x=exprdata,
+                    y=shapdata,
+                    hue=ctype,
                     ax=ax[1,1])
+    
+    r = np.corrcoef(exprdata, shapdata)[1,0]
     
     #left, bottom, width, height = [0.1, 0.6, 0.2, 0.2]
     #axinset = fig.add_axes([left, bottom, width, height])
@@ -32,8 +38,8 @@ def plot_latentshap_singlegene(shap_values, latent, eXadata, geneindex, ctypekey
     #fig.delaxes(ax[0,0])
     ax[0,0].axis('off')
     
-    sns.stripplot(x=eXadata.obs[ctypekey],
-                  y=latent[:,latentdim],
+    sns.stripplot(x=ctype,
+                  y= eXadata.obsm[latentkey][:,latentdim] if latent is None else latent[:,latentdim],
                   ax=axinset)
     
     ax[1,1].set_yticklabels([])
@@ -55,6 +61,8 @@ def plot_latentshap_singlegene(shap_values, latent, eXadata, geneindex, ctypekey
     
     ax[1,1].set_ylim(ax[1,0].get_ylim())
     ax[1,1].set_xlim(ax[0,1].get_xlim())
+    
+    axinset.set_title(f"Expression x SHAP:\nr={np.round(r,2)}, r²={np.round(r**2,2)}\n\n")
     
     fig.suptitle(f"Explaining Latent Dimension {latentdim} with Gene {eXadata.var[geneskey].iloc[geneindex]}", size=20, y=.92)
     

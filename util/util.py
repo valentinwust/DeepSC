@@ -27,3 +27,22 @@ def sample_indices(Nsample, Ntotal, group=None):
         indices = np.asarray(sample.index)
         np.random.shuffle(indices)
     return indices
+
+##############################
+##### Model Summary
+##############################
+
+from pytorch_model_summary import summary
+import torch
+def model_summary(model, device="cuda:0", show_hierarchical=True):
+    """ Keras style model summary.
+    """
+    example_input = torch.zeros((1,AE.input_size)).to(device)
+    summary(AE, example_input, show_hierarchical=show_hierarchical, print_summary=True, max_depth=2)
+
+
+
+
+
+
+

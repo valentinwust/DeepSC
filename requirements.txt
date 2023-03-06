@@ -6,3 +6,4 @@ torch
 shap
 matplotlib
 seaborn
+pytorch-model-summary
