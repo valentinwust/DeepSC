@@ -37,8 +37,8 @@ import torch
 def model_summary(model, device="cuda:0", show_hierarchical=True):
     """ Keras style model summary.
     """
-    example_input = torch.zeros((1,AE.input_size)).to(device)
-    summary(AE, example_input, show_hierarchical=show_hierarchical, print_summary=True, max_depth=2)
+    example_input = torch.zeros((1,model.input_size)).to(device)
+    summary(model, example_input, show_hierarchical=show_hierarchical, print_summary=True, max_depth=2)
 
 
 
