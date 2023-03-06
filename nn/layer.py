@@ -22,22 +22,34 @@ shap.explainers._deep.deep_pytorch.op_handler["RNA_Log1pActivation"] = nonlinear
 class RNA_PreprocessLayer(Module):
     """ RNA count preprocessing layer.
         
-        Mean and offset are optionally trainable.
+        Mean, std and offset are optionally trainable.
         For simple NB AE and NB PCA, this does not seem to make any difference, and it barely changes them.
         
         Initial offset is assumed to be the exponent in base 10.
     """
-    def __init__(self, N, counts, means_trainable=False, offset_trainable=False, initial_offset=-4.):
+    def __init__(self, N, counts=None, shift=True, scale=True, means_trainable=False, stds_trainable=False, offset_trainable=False, initial_offset=-4.):
         super().__init__()
-        self.means = torch.nn.Parameter(torch.log(counts/counts.sum(dim=-1)[:,None] + torch.exp(torch.tensor(initial_offset))).mean(0))
-        self.means.requires_grad = means_trainable
+        self.shift = shift
+        self.scale = scale
+        if counts is not None and self.shift:
+            vals = torch.log(counts/counts.sum(dim=-1)[:,None] + torch.exp(torch.tensor(initial_offset)))
+            if self.shift:
+                self.means = torch.nn.Parameter(vals.mean(0))
+                self.means.requires_grad = means_trainable
+                if self.scale:
+                    self.stds = torch.nn.Parameter(vals.std(0))
+                    self.stds.requires_grad = stds_trainable
         self.offset = torch.nn.Parameter(torch.tensor([initial_offset*np.log(10.)], dtype=torch.float).repeat(N))
         self.offset.requires_grad = offset_trainable
     
     def forward(self, k):
         s = k.sum(dim=-1, keepdim=True)
         y = torch.log(k / s + torch.exp(self.offset))
-        return y-self.means, s
+        if self.shift:
+            y = y-self.means
+            if self.scale:
+                y = y/self.stds
+        return y, s
     
     def normalize_counts(self, k):
         yc, s = self.forward(k)
