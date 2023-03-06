@@ -22,12 +22,14 @@ shap.explainers._deep.deep_pytorch.op_handler["RNA_Log1pActivation"] = nonlinear
 class RNA_PreprocessLayer(Module):
     """ RNA count preprocessing layer.
         
+        Scale needs some safeguards!!!!! Otherwise /0 and problems!!!
+        
         Mean, std and offset are optionally trainable.
         For simple NB AE and NB PCA, this does not seem to make any difference, and it barely changes them.
         
         Initial offset is assumed to be the exponent in base 10.
     """
-    def __init__(self, N, counts=None, shift=True, scale=True, means_trainable=False, stds_trainable=False, offset_trainable=False, initial_offset=-4.):
+    def __init__(self, N, counts=None, shift=True, scale=False, means_trainable=False, stds_trainable=False, offset_trainable=False, initial_offset=-4.):
         super().__init__()
         self.shift = shift
         self.scale = scale
