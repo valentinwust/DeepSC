@@ -81,7 +81,7 @@ class RNA_EncodewGeneEmbeddingLayer(Module):
         out = x
         if self.use_scale_in:        out = out * self.scale_in
         if self.use_bias_in:         out = out + self.bias_in
-        out = torch.einsum("ij, jk, klm -> im", out, self.embCont.normed_embedding(), normalize_embedding(self.weight, dim=1))
+        out = torch.einsum("ij, jk, klm -> im", out, self.embCont.normed_embedding(), normalize_embedding(self.weight, dim=0))
         if self.use_scale_out:        out = out * self.scale_out
         if self.use_bias_out:         out = out + self.bias_out
         return out
@@ -122,7 +122,7 @@ class RNA_DecodewGeneEmbeddingLayer(Module):
     def forward(self, x):
         out = x
         if self.use_scale_in:   out = out * self.scale_in
-        out = torch.einsum("ij, lm, jkm -> il", out, self.embCont.normed_embedding(), normalize_embedding(self.weight, dim=1))
+        out = torch.einsum("ij, lm, jkm -> il", out, self.embCont.normed_embedding(), normalize_embedding(self.weight, dim=-1))
         if self.use_scale_out:  out = out * self.scale_out
         if self.use_bias:       out = out + self.bias
         return out
