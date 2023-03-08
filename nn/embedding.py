@@ -64,10 +64,10 @@ class RNA_EncodewGeneEmbeddingLayer(Module):
         torch.nn.init.normal_(self.weight)
         
         if self.use_scale_in:
-            self.scale_in = torch.nn.Parameter(torch.empty((self.input_size), dtype=torch.float32))
+            self.scale_in = torch.nn.Parameter(torch.empty((1,self.input_size), dtype=torch.float32))
             torch.nn.init.kaiming_uniform_(self.scale_in, a=np.sqrt(5))
         if self.use_scale_out:
-            self.scale_out = torch.nn.Parameter(torch.empty((self.output_size), dtype=torch.float32))
+            self.scale_out = torch.nn.Parameter(torch.empty((1,self.output_size), dtype=torch.float32))
             torch.nn.init.kaiming_uniform_(self.scale_out, a=np.sqrt(5))
         
         if self.use_bias_in:
@@ -79,10 +79,10 @@ class RNA_EncodewGeneEmbeddingLayer(Module):
     
     def forward(self, x):
         out = x
-        if self.use_scale_in:        out = out * self.scale_in[None]
+        if self.use_scale_in:        out = out * self.scale_in
         if self.use_bias_in:         out = out + self.bias_in
         out = torch.einsum("ij, jk, klm -> im", out, self.embCont.normed_embedding(), normalize_embedding(self.weight, dim=1))
-        if self.use_scale_out:        out = out * self.scale_out[None]
+        if self.use_scale_out:        out = out * self.scale_out
         if self.use_bias_out:         out = out + self.bias_out
         return out
 
@@ -107,10 +107,10 @@ class RNA_DecodewGeneEmbeddingLayer(Module):
         torch.nn.init.normal_(self.weight)
         
         if self.use_scale_in:
-            self.scale_in = torch.nn.Parameter(torch.empty((self.input_size), dtype=torch.float32))
+            self.scale_in = torch.nn.Parameter(torch.empty((1,self.input_size), dtype=torch.float32))
             torch.nn.init.kaiming_uniform_(self.scale_in, a=np.sqrt(5))
         if self.use_scale_out:
-            self.scale_out = torch.nn.Parameter(torch.empty((self.output_size), dtype=torch.float32))
+            self.scale_out = torch.nn.Parameter(torch.empty((1,self.output_size), dtype=torch.float32))
             torch.nn.init.kaiming_uniform_(self.scale_out, a=np.sqrt(5))
         
         if self.use_bias:
@@ -121,9 +121,9 @@ class RNA_DecodewGeneEmbeddingLayer(Module):
     
     def forward(self, x):
         out = x
-        if self.use_scale_in:   out = out * self.scale_in[None]
+        if self.use_scale_in:   out = out * self.scale_in
         out = torch.einsum("ij, lm, jkm -> il", out, self.embCont.normed_embedding(), normalize_embedding(self.weight, dim=1))
-        if self.use_scale_out:  out = out * self.scale_out[None]
+        if self.use_scale_out:  out = out * self.scale_out
         if self.use_bias:       out = out + self.bias
         return out
 
