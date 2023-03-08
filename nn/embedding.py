@@ -39,7 +39,7 @@ class EmbeddingContainer(Module):
         return x
 
 ##############################
-##### Simple Embedding Layer
+##### RNA Gene Embedding Layers
 ##############################
 
 class RNA_EncodewGeneEmbeddingLayer(Module):

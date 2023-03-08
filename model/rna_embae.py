@@ -90,8 +90,10 @@ class RNA_NBEmbeddingAutoEncoder(RNA_NBAutoEncoder):
                  embedding_out=True,
                  embedding_in_kwargs={},
                  embedding_out_kwargs={},
+                 preprocess_kwargs={},
                  **kwargs):
-        super().__init__(input_size, **kwargs)
+        preprocess_kwargs.setdefault("shift", False)
+        super().__init__(input_size, preprocess_kwargs=preprocess_kwargs, **kwargs)
         
         self.embedding_size = embedding_size
         self.embedding_in = embedding_in
@@ -105,7 +107,7 @@ class RNA_NBEmbeddingAutoEncoder(RNA_NBAutoEncoder):
     def build_network(self, counts, device=None):
         """ Build network, needs full counts to initialize preprocessing parameters.
         """
-        self.pre = RNA_PreprocessLayer(self.input_size, counts, means_trainable=True, shift=False)
+        self.pre = RNA_PreprocessLayer(self.input_size, counts, **self.preprocess_kwargs)
         
         self.embCont = EmbeddingContainer(self.input_size, embedding_size=self.embedding_size)
         

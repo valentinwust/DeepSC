@@ -72,7 +72,8 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
                  bias=True,
                  BNmomentum=.1,
                  fixed_dispersion=None,
-                 latent_activation=True):
+                 latent_activation=True,
+                 preprocess_kwargs={}):
         super().__init__()
         
         self.input_size = input_size
@@ -88,11 +89,12 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         self.BNmomentum = BNmomentum
         self.fixed_dispersion = fixed_dispersion
         self.loss = NB_loss
+        self.preprocess_kwargs = preprocess_kwargs
     
     def build_network(self, counts, device=None):
         """ Build network, needs full counts to initialize preprocessing parameters.
         """
-        self.pre = RNA_PreprocessLayer(self.input_size, counts)#.to(self.device))
+        self.pre = RNA_PreprocessLayer(self.input_size, counts, **self.preprocess_kwargs)
         
         self.encoder = make_FC_encoder(self.input_size, self.encoder_size,
                                          batchnorm=self.batchnorm, activation=self.activation, dropout=self.dropout, bias=self.bias, BNmomentum=self.BNmomentum,
@@ -158,13 +160,13 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         
             return {"nll": total_loss/len(loader.dataset)}
     
-    def train_model(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True, clip_gradients=1., countsout=None):
+    def train_model(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True, clip_gradients=1., countsout=None, optimizer_=None):
         """ Train model.
         """
         trainloader, testloader = get_RNA_dataloaders([counts, counts if countsout is None else countsout], batch_size=batchsize)
         printwtime(f"Train model {type(self).__name__}")
         
-        optimizer = torch.optim.RMSprop(self.parameters(), lr=lr)
+        optimizer = torch.optim.RMSprop(self.parameters(), lr=lr) if optimizer_ is None else optimizer_
         printwtime(f"  Optimizer {type(optimizer).__name__} (lr={optimizer.param_groups[0]['lr']}), {epochs} epochs, device {device}.")
         
         history = {"training_loss":[], "test_loss":[], "epoch":[], "lr":[]}
