@@ -88,7 +88,7 @@ class RNA_NBEmbeddingAutoEncoder(RNA_NBAutoEncoder):
                  embedding_in=True,
                  embedding_out=True,
                  embedding_in_kwargs={},
-                 embedding_out_kwargs={}
+                 embedding_out_kwargs={},
                  **kwargs):
         super().__init__(input_size, **kwargs)
         
