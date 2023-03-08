@@ -87,12 +87,16 @@ class RNA_NBEmbeddingAutoEncoder(RNA_NBAutoEncoder):
                  embedding_size=10,
                  embedding_in=True,
                  embedding_out=True,
+                 embedding_in_kwargs={},
+                 embedding_out_kwargs={}
                  **kwargs):
         super().__init__(input_size, **kwargs)
         
         self.embedding_size = embedding_size
         self.embedding_in = embedding_in
         self.embedding_out = embedding_out
+        self.embedding_in_kwargs = embedding_in_kwargs
+        self.embedding_out_kwargs = embedding_out_kwargs
         
         if self.fixed_dispersion is None:
             raise ValueError("Currently only works with fixed dispersion!")
@@ -105,7 +109,7 @@ class RNA_NBEmbeddingAutoEncoder(RNA_NBAutoEncoder):
         self.embCont = EmbeddingContainer(self.input_size, embedding_size=self.embedding_size)
         
         if self.embedding_in:
-            self.encoder = Sequential(  RNA_EncodewGeneEmbeddingLayer(self.encoder_size[0], self.embCont),
+            self.encoder = Sequential(  RNA_EncodewGeneEmbeddingLayer(self.encoder_size[0], self.embCont, **self.embedding_in_kwargs),
                                         #self.embCont, # Does nothing, only here for proper overview
                                         #RNA_GeneEmbeddingLayer(self.embCont, use_offset=False),
                                         #RNA_ProcessGeneEmbeddingLayer(self.encoder_size[0], embedding_size=self.embedding_size),
@@ -124,7 +128,7 @@ class RNA_NBEmbeddingAutoEncoder(RNA_NBAutoEncoder):
         
         if self.embedding_out:
             self.decoder_mu = Sequential(
-                                            RNA_DecodewGeneEmbeddingLayer(self.decoder_size[-1], self.embCont),
+                                            RNA_DecodewGeneEmbeddingLayer(self.decoder_size[-1], self.embCont, **self.embedding_out_kwargs),
                                             RNA_MeanActivation())
         else:
             self.decoder_mu = Sequential(
