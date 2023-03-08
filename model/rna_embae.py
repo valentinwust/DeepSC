@@ -12,6 +12,7 @@ from ..nn import make_FC_encoder, make_FC_decoder
 
 from ..model import RNA_NBAutoEncoder
 from ..nn import EmbeddingContainer, normalize_embedding
+from ..nn import RNA_EncodewGeneEmbeddingLayer, RNA_DecodewGeneEmbeddingLayer
 
 
 
