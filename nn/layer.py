@@ -63,17 +63,18 @@ class RNA_PreprocessLayer(Module):
 
 class RNA_MeanActivation(Module):
     """ Softmax activation function.
+        
+        dca uses cliped exp, but softmax is clearly better?
     """
     def forward(self, x):
         return torch.nn.functional.softmax(x, dim=-1)
-        #return torch.clip(torch.exp(x), min=1e-5, max=1e6)
 
 class RNA_DispersionActivation(Module):
     """ Clipped softplus activation function.
     """
     def forward(self, x):
-        return torch.clip(torch.exp(x), min=1e-4, max=1e6)
         #return torch.clip(torch.nn.functional.softplus(x), min=1e-4, max=1e4)
+        return torch.clip(torch.exp(x), min=1e-4, max=1e6)
 
 class RNA_Log1pActivation(Module):
     """ Log(x+1).

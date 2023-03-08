@@ -95,11 +95,11 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         self.pre = RNA_PreprocessLayer(self.input_size, counts)#.to(self.device))
         
         self.encoder = make_FC_encoder(self.input_size, self.encoder_size,
-                                     batchnorm=self.batchnorm, activation=self.activation, dropout=self.dropout, bias=self.bias, BNmomentum=self.BNmomentum,
-                                     final_activation=self.latent_activation)
+                                         batchnorm=self.batchnorm, activation=self.activation, dropout=self.dropout, bias=self.bias, BNmomentum=self.BNmomentum,
+                                         final_activation=self.latent_activation)
         
         self.decoder = make_FC_decoder(self.encoder_size[-1], self.decoder_size,
-                                     batchnorm=self.batchnorm, activation=self.activation, dropout=self.dropout, bias=self.bias, BNmomentum=self.BNmomentum)
+                                         batchnorm=self.batchnorm, activation=self.activation, dropout=self.dropout, bias=self.bias, BNmomentum=self.BNmomentum)
         
         self.decoder_mu = Sequential(
                                     Linear(self.decoder_size[-1] if len(self.decoder_size)>0 else self.encoder_size[-1],

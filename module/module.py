@@ -25,7 +25,7 @@ class EvaluateLatentModule():
 
             return latents
     
-    def evaluate_means(self, loader, device, training=False, **kwargs):
+    def evaluate_means(self, loader, device, training=False, outind=0, **kwargs):
         """ Get output mean expression for full dataloader.
         """
         with torch.no_grad():
@@ -35,7 +35,8 @@ class EvaluateLatentModule():
 
             for batch in loader:
                 k = batch[0].to(device)
-                means.append(self.forward(k, **kwargs)[0].to("cpu").detach().numpy())
+                means.append(self.forward(k, **kwargs)[outind].to("cpu").detach().numpy())
             means = np.concatenate(means)
 
             return means
+
