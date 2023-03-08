@@ -160,7 +160,7 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
         
             return {"nll": total_loss/len(loader.dataset)}
     
-    def train_model(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True, clip_gradients=1., countsout=None, optimizer_=None):
+    def train_model(self, counts, batchsize=128, epochs=30, device="cuda:0", lr=1e-3, verbose=True, clip_gradients=1., countsout=None, optimizer_=None, lr_scheduler=None):
         """ Train model.
         """
         trainloader, testloader = get_RNA_dataloaders([counts, counts if countsout is None else countsout], batch_size=batchsize)
@@ -193,6 +193,10 @@ class RNA_NBAutoEncoder(Module, EvaluateLatentModule):
             history["epoch"].append(epoch)
             history["training_loss"].append(running_loss)
             history["test_loss"].append(evalloss)
+            history["lr"].append(optimizer.param_groups[0]["lr"])
+            
+            if lr_scheduler is not None:
+                lr_scheduler.step()
             
             if verbose: printwtime(f'  [{epoch + 1}/{epochs}] train loss: {running_loss:.3f}, test loss: {evalloss:.3f}')
             
