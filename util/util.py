@@ -34,10 +34,10 @@ def sample_indices(Nsample, Ntotal, group=None):
 
 from torchinfo import summary
 
-def model_summary(model, verbose=1):
+def model_summary(model, **kwargs):
     """ Keras style model summary.
     """
-    summary(model, (1,model.input_size), verbose=verbose);
+    summary(model, (1,model.input_size), **kwargs);
 
 
 
